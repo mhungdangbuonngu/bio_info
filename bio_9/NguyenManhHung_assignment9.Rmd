@@ -1,0 +1,76 @@
+---
+title: "Assignment9"
+author: "NguyenManhHung_22BI13183"
+date: "2025-04-01"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(readr)
+library(tidyr)
+library(stringr)
+```
+```{r}
+phenotype_file <- "resistance_phenotype.csv"
+snp_info_file <- "SNPs_info.csv"
+data_folder <- "Assignment_data"
+```
+
+```{r}
+phenotype_df <- read_csv(phenotype_file)
+phenotype_df <- phenotype_df %>% 
+  mutate(y = ifelse(`Resistant Phenotype` == "Resistant", 1, 0)) %>%
+  select(ID, y) %>%
+  rename(Strain_ID = ID)
+```
+```{r}
+snp_files <- list.files(data_folder, pattern = "*.csv", full.names = TRUE)
+```
+
+```{r}
+# Extract unique SNP positions
+unique_snps <- c()
+for (file in snp_files) {
+  df <- read_csv(file)
+  unique_snps <- union(unique_snps, as.character(df$POS))
+}
+```
+```{r}
+snp_matrix <- as.data.frame(matrix(0, nrow = length(snp_files), ncol = length(unique_snps)))
+colnames(snp_matrix) <- unique_snps
+strain_ids <- c()
+```
+
+
+```{r}
+# Populate SNP presence-absence matrix
+for (i in seq_along(snp_files)) {
+  file <- snp_files[i]
+  df <- read_csv(file)
+  strain_id <- str_extract(basename(file), "\\d+")
+  strain_ids <- c(strain_ids, strain_id)
+  
+  snp_matrix[i, as.character(df$POS)] <- 1
+}
+
+# Add strain IDs to the dataframe
+snp_matrix <- cbind(Strain_ID = as.integer(strain_ids), snp_matrix)
+
+# Merge with phenotype data
+final_data <- left_join(snp_matrix, phenotype_df, by = "Strain_ID")
+
+# Save final data table
+write_csv(final_data, "snp_data.csv")
+
+# Print dimensions and preview
+print(dim(final_data))
+print(head(final_data))
+```
+
+
+
+
+
+
+

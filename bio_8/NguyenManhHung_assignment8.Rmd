@@ -1,0 +1,102 @@
+---
+title: "Assignment8"
+author: "NguyenManhHung_22BI13183"
+date: "2025-04-01"
+output: html_document
+---
+```{r}
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(enrichplot)
+library(fgsea)
+library(DOSE)
+library(ggplot2)
+library(stats)
+```
+## QUESTION 1: What does each dot in the dot plots above represent?
+
+Answer: - Each dot represents a Gene Ontology term with the dot size is the number of genes enriched in that term.The dot color is the p-adjected value, with red indicates more significant enrichment and blue indicates less significant one.The x-axis is the proportion of genes from the input list associated with a particular GO term.
+
+## QUESTION 2: In the same gene list above, create a dot plot showing the top 10 most enriched GO Cellular Components term by Over-representation Analysis. Which GO Cellular Components term is the most enriched?
+```{r}
+# Load the dataset
+deg <- readRDS("Breast-cancer_DEG.RDS")
+
+# using row as ids
+deg$entrez <- as.character(rownames(deg))
+
+# rename the column
+colnames(deg)[colnames(deg) == "Log2FC"] <- "log2FoldChange"
+
+# Filter for |log2FC| > 1
+deg_filtered <- deg[abs(deg$log2FoldChange) > 1, ]
+
+#find valid ids
+valid_entrez <- keys(org.Hs.eg.db, keytype = "ENTREZID")
+
+# Keep only valid IDs
+deg_filtered <- deg_filtered[deg_filtered$entrez %in% valid_entrez, ]
+entrez_ids <- deg_filtered$entrez
+```
+
+```{r}
+# ORA for Cellular Component
+ora_cc <- enrichGO(
+  gene          = entrez_ids,
+  OrgDb         = org.Hs.eg.db,
+  keyType       = "ENTREZID",
+  ont           = "CC",
+  pAdjustMethod = "BH",
+  qvalueCutoff  = 0.05,
+  pvalueCutoff  = 0.05,
+  readable      = TRUE
+)
+
+# Plot
+dotplot(ora_cc, showCategory = 10, title = "Top 10 GO Cellular Component Terms (ORA)")
+```
+```{r}
+# Most enriched Cellular Component term (ORA)
+top <- ora_cc@result[order(ora_cc@result$p.adjust), ][1, ]
+name <- top$Description
+p_adj <- top$p.adjust
+cat('Most enriched CC term:', name , '\n')
+cat('p-value: ',p_adj,"\n")
+```
+## QUESTION 3: Similarly, using the same gene list, create a dot plot showing the top 10 most enriched Biological Processes term by Gene Set Enrichment Analysis. Which BP Cellular Components term is the most enriched?
+
+
+```{r}
+# ORA for Biological Process
+ora_bp <- enrichGO(
+  gene          = entrez_ids,
+  OrgDb         = org.Hs.eg.db,
+  keyType       = "ENTREZID",
+  ont           = "BP",
+  pAdjustMethod = "BH",
+  qvalueCutoff  = 0.05,
+  pvalueCutoff  = 0.05,
+  readable      = TRUE
+)
+
+# Plot
+dotplot(ora_bp, showCategory = 10, title = "Top 10 GO Biological Process Terms (ORA)")
+
+
+```
+```{r}
+#get the most riched
+top <- ora_bp@result[order(ora_bp@result$p.adjust), ][1, ]
+  
+# Extract name and adjusted p-value
+name <- top$Description
+p_adj <- top$p.adjust
+
+# Print results
+cat("Most enriched BP term:", name, "\n")
+cat("p-value:", p_adj, "\n")
+
+```
+
+
+
